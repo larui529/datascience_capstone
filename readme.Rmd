@@ -82,6 +82,8 @@ The following packages were used to complete the various activities:
 
 @)  The final activities (final tokenization, prediction model, testing and           validating the model) are contained in the `prediction.R` and the                 `validation.R` files.
 
+@)  The milestone report is available on [rpub](http://rpubs.com/stbalo2002/milestone_report)
+
 @) The `next-word prediction` app is located here on [shinyApp](https://stbalo2002.shinyapps.io/shiny/)
 
 @) The presentation is available on [rpub](http://rpubs.com/stbalo2002/datascience_capstone_project)
