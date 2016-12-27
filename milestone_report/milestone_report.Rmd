@@ -1,0 +1,502 @@
+---
+title: "Data Science Capstone Project Milestone Report"
+author: "Balogun Stephen Taiye"
+date: "November 22, 2016"
+output:
+  html_document:
+    code_download: no
+    css: style.css
+    fig_caption: yes
+    theme: flatly
+    highlight: tango
+    toc: yes
+    toc_float: yes
+    fig.width: 8
+    fig.height: 6
+    code_folding: show
+  html_notebook:
+    toc: yes
+    toc_float: TRUE
+    css: style.css
+    fig.width: 8
+    fig.height: 6
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(message = FALSE, warning = FALSE,
+                      collapse = TRUE)
+library(ggplot2)
+theme_set(theme_light())
+```
+
+
+# Introduction
+
+This is the John Hopkins Bloomberg School of Public Health Coursera Data Science
+milestone report. The goal of this project is to: 
+
+ -  Demonstrate that the data hasb been successfully downloaded 
+ 
+ -  Create a basic report of summary statistics about the data sets  
+ 
+ -  Report any interesting findings that you amassed so far 
+ 
+ -  Get feedback on your plans for creating a prediction algorithm and Shiny app. 
+
+This capstone project is a collaborative effort of the John Hopkins and the 
+SwiftKey teams.
+
+
+# Downloading the file
+
+The documents supplied for this capstone project is rather heavy consisting of 
+several million lines of test. The size of the zipped folder is approximately 0.5GB. 
+
+
+```{r, "downloading"}
+library(downloader)
+
+fileURL <- "https://d396qusza40orc.cloudfront.net/dsscapstone/dataset/
+Coursera-SwiftKey.zip"
+
+if (!file.exists("Coursera-SwiftKey.zip")) {
+  download(fileURL)
+  unzip("Coursera-SwiftKey.zip")
+}
+
+```
+
+
+```{r, "read-in data"}
+## opening of connection done to link to each of the documents and closing of each connection ensured before a another is opened
+
+con1 <- file(description = "final/en_US/en_US.blogs.txt", open = "r")
+blogs <- readLines(con1, encoding = "UTF-8")  
+close(con1)
+
+con2 <- file(description = "final/en_US/en_US.news.txt", open = "r")
+set.seed(1235)
+news <- readLines(con2, encoding = "UTF-8")
+close(con2)
+
+con3 <- file(description = "final/en_US/en_US.twitter.txt", open = "r")
+
+set.seed(1236)
+twitter <- readLines(con3, encoding = "UTF-8") 
+close(con3)
+```
+
+
+
+```{r, "loading required packages", include = FALSE}
+## load required libraries
+
+suppressMessages(c(library(tidyverse),
+                   library(doParallel),
+                   library(stringr),
+                   library(qdap),
+                   library(tm)))
+```
+
+
+
+```{r, "loading packages", eval = FALSE}
+suppressMessages(c(library(tidyverse),
+                   library(doParallel),
+                   library(stringr),
+                   library(qdap),
+                   library(tm)))
+```
+
+
+The table below shows the summary of the downloaded file.
+
+```{r, "summary", cache = TRUE}
+
+lines <- c(length(news), length(blogs), length(twitter)) ## counts the number of lines per files
+character <- c(sum(str_length(news)), 
+               sum(str_length(blogs)), 
+               sum(str_length(twitter)))  ## counts the number of characters in each of the files
+words <- c(sum(str_count(news, boundary("word"))), 
+          sum(str_count(blogs, boundary("word"))), 
+           sum(str_count(twitter, boundary("word"))))  ## counts the number of words in each of the file. 
+
+summ <- rbind(lines, words, character)  
+summ <- as.data.frame(summ)  ## convert the binded lines into a dataframe
+names(summ) <- c("news", "blogs", "twitter") ## add column names to the dataframe
+row.names(summ) <- c("lines", "words", "characters") ## add row names
+summ <- format(summ, big.mark = ",")  ## format the data nicely
+```
+
+```{r, "kable summ", results = "asis"}
+knitr::kable(summ, caption = "table 1: summary of 'lines', 'words' and 'characters' in the project file")  ## for nice display
+```
+
+
+After the file was downloaded, surfing through, I decided to do my analysis based on a 10% sample size of the document. 
+This makes working with the data relatively more easy while increasing the speed 
+of data processing and reducing the chances of my computer getting clogged in 
+the process. 
+
+The sampled data were written into another directory ("sample_text") to make creation of document corpus easy
+
+
+```{r, "sampling"}
+
+set.seed(1234)  ## for reproducibility 
+twitter_ten <- sample(twitter, (1/10 * length(twitter)))
+
+set.seed(1234)
+blogs_ten <- sample(blogs, (1/10 * length(blogs)))
+
+set.seed(1234)
+news_ten <- sample(news, (1/10 * length(news)))
+
+```
+
+
+```{r, "write sample into folder"}
+if (!file.exists("sample_text")) {
+  dir.create("sample_text")
+  writeLines(twitter_ten, "sample_text/twitter_ten")
+
+  writeLines(news_ten, "sample_text/news_ten")
+
+  writeLines(blogs_ten, "sample_text/blogs_ten")
+}
+
+```
+
+
+# Corpus creation
+
+Using the `tm` package, a corpus of document was created using the sampled files. 
+Corpus creation allows us to do parallel processing on multiple text files.
+
+
+```{r, "read corpus"}
+file_directory <- file.path(".", "sample_text")
+file_directory
+dir(file_directory)
+docs <- VCorpus(DirSource(file_directory, encoding = "UTF-8"), 
+                readerControl = list(language = "en"))  ## using the "UTF-8" 
+## encoding ensures that symbols, signs and other characters are correctly read
+```
+
+
+```{r, "exploring the corpus"}
+summary(docs)  ## displays the summary of the whole corpus formed
+
+sapply(docs[1:3], meta)  ## displays the meta-data of each text document
+
+## function to view the top 6 lines of each of the documents
+view_doc <- function(x, n = 6)  {
+  output <- vector("character")
+  for (i in seq_along(x)) {            # 2. sequence
+    output[i] <- list(head(as.character(x[[i]]), n))  # 3. body
+  }
+  output
+}
+
+view_doc(docs, 3)  ## views the first three lines for each of the files
+```
+
+
+# Text processing
+
+Following exploration of the documents, it became obvious that the document needed some processing. This include:
+
+- conversion of all words to lower characters  
+
+- removal of numbers from the documents (since we are only interested in **words**)
+
+- replace abbreviated words with their full forms (e.g. Mr is converted to Mister)
+
+- replace symbols with their word-equivalent (e.g. "&" with "and")
+
+- replace contractions (e.g. "wasn't" is replaced by "was not")
+
+- remove punctuation marks from the documents
+
+- remove any extra white (tab) spaces from the document
+
+- *profanity filtering* (i.e. removal of some words that are agreed as profane), and also removal of some other words that do not appear to make any sense. The profane words were of [swear words](http://www.bannedwordlist.com/lists/swearWords.txt) and [bad words]()
+
+```{r, "preprocessing", cache = TRUE}
+my_stopwords <- function() {
+  swear <- readLines("swearWords.txt", encoding = "UTF-8")
+  bad <- readLines("bad-words.txt", encoding = "UTF-8")
+  no_meaning <- readLines("no_meaning.txt")
+  
+  c(swear, bad, no_meaning)
+}
+
+preprocess <- function(doc) {
+  doc %>%
+    tm_map(content_transformer(str_to_lower)) %>%
+    tm_map(content_transformer(replace_symbol)) %>%
+    tm_map(content_transformer(replace_abbreviation)) %>%
+    tm_map(content_transformer(replace_contraction)) %>%
+    tm_map(removePunctuation) %>% 
+    tm_map(removeNumbers) %>% 
+    tm_map(stripWhitespace) %>%
+    tm_map(removeWords, my_stopwords())
+}
+
+prep_doc <- preprocess(docs)
+
+view_doc(prep_doc, 3)
+```
+
+In the spirit of **tidy data**, I decided to write my *preprocessed corpus* back to their corresponding text files to allow me use **tidy data** principles subsequently on the data.
+
+```{r, "write corpus"}
+if (!file.exists("processed_doc")) {
+  dir.create("processed_doc")
+  writeCorpus(prep_doc, "./processed_doc")
+}
+```
+
+
+```{r, "read files"}
+con1 <- file(description = "./processed_doc/twitter_ten.txt", open = "r")
+twitter <- readLines(con1)  
+close(con1)
+
+con2 <- file(description = "processed_doc/blogs_ten.txt", open = "r")
+blogs <- readLines(con2)
+close(con2)
+
+con3 <- file(description = "processed_doc/news_ten.txt", open = "r")
+news <- readLines(con3) 
+close(con3)
+```
+
+ 
+ 
+```{r, "dataframe"}
+
+## convert the character texts into dataframe
+
+twitter <- data_frame(source = "twitter", 
+                        line = 1:length(twitter), 
+                        text = twitter)
+blogs <- data_frame(source = "blogs", 
+                    line = 1:length(blogs), 
+                    text = blogs)
+news <- data_frame(source = "news", 
+                   line = 1:length(news), 
+                   text = news)
+
+prep_doc <- bind_rows(twitter, blogs, news)
+```
+
+
+```{r, "complete preprocessing"}
+
+## following initial preprocessing, some compound-words and abbreviated words needed to be separated
+
+to_strings <- function(x) {
+  x %>%
+    str_replace("teamifollowback", "team i follow back") %>%
+    str_replace("sweetiepiez", "sweet pie") %>%
+    str_replace("jonathantaylorthomas", "jonathan taylor thomas") %>%
+    str_replace("thru", "through") %>%
+    str_replace("tvmovies", "television movies") %>%
+    str_replace("tv", "television") %>%
+    str_replace("shortlived", "short lived")
+}
+
+prep_doc$text <- to_strings(prep_doc$text)
+```
+
+
+# Tokenization
+
+Tokenization involves spliting of text files into what we call **tokens**. Tokens are words or group of words derived from spliting up the inital text file. The number of words constituting a token is represented by **_n-gram_** where a **1-gram** tokenization is called a **unigram**; a **2-gram** tokenization called a **bigram** and so on... Tokens are created for $n = 1$ to $n = 4$.
+
+For this particular task, I am using the `tidytext` package. This works using the principle of tidy data on data_frame and works well with other packages in the `tidyverse`.
+
+```{r,"tokenization", cache = TRUE}
+suppressMessages(library(tidytext))  ## text mining using tidy data principles
+
+tokenize_data <- function(data) {
+  
+  ## create a unigram token
+  token1 <- data %>%
+  unnest_tokens(word, text, token = "ngrams", n = 1) %>% 
+  mutate(word = str_extract(word, "[^\\d]+")) %>%
+  drop_na() %>%
+  ungroup
+token1$gram <- "unigram"
+
+## create a bigram token
+token2 <- data %>%
+  unnest_tokens(word, text, token = "ngrams", n = 2) %>% 
+  mutate(word = str_extract(word, "[^\\d]+")) %>%
+  drop_na() %>%
+  ungroup
+token2$gram <- "bigram"
+
+## create a trigram token
+token3 <- data %>%
+  unnest_tokens(word, text, token = "ngrams", n = 3) %>% 
+  mutate(word = str_extract(word, "[^\\d]+")) %>%
+  drop_na() %>%
+  ungroup
+token3$gram <- "trigram"
+
+## create a tetragram token
+token4 <- data %>%
+  unnest_tokens(word, text, token = "ngrams", n = 4) %>% 
+  mutate(word = str_extract(word, "[^\\d]+")) %>%
+  drop_na() %>%
+  ungroup
+token4$gram <- "tetragram"
+
+bind_rows(token1, token2, token3, token4)
+}
+
+
+token_doc <- tokenize_data(prep_doc)
+```
+
+
+```{r, "table 2"}
+knitr::kable(head(token_doc, 4), caption = "table 2: first 4 rows of the tokenized data")
+
+```
+
+
+
+# Analysis {.tabset .tabset-fade .tabset-pills}
+
+Following **tokenization**, we will take a look to find out the most common tokens in each of the *n-grams*. We will be looking at the 15 most common words for each of the tokens
+
+```{r, "word count", cache = TRUE}
+word_count <- function(document) {
+  document %>%
+    group_by(source, gram, word) %>%
+    count(sort = TRUE) %>% ## counts the number of times a particular word appears in each of the source for each of the grams
+    rename(count = n)
+}
+
+word_doc <- word_count(token_doc)
+
+```
+
+
+
+
+```{r, "plot top 15 words"}
+top_15 <- function(x) {
+  x %>% 
+    group_by(source, gram) %>% 
+    top_n(15) %>%
+    mutate(word = reorder(word, count)) %>%
+    arrange(source)
+  }
+
+top15_words <- top_15(word_doc)
+```
+
+## blogs 
+
+```{r, "blogs plot", fig.cap = "figure 1: top 15 tokens in the 'blogs' text file"}
+plot_blogs <- top15_words %>%
+    filter(source == "blogs") %>%
+  ggplot(aes(word, count, fill = gram)) + 
+  geom_bar(alpha = 0.8, stat = "identity", show.legend = FALSE) + 
+  facet_wrap(~ gram, ncol = 2, scales = "free") + 
+  coord_flip() + 
+  labs(title = "top-15 tokens in the sampled blogs data", 
+       caption = "10% of 'blogs' data",
+       x = NULL,
+       y = "count")
+  
+
+plot_blogs
+```
+
+
+## news
+
+```{r, "news plot", fig.cap = "figure 2: top 15 tokens in the 'news' text file"}
+plot_news <- top15_words %>%
+  filter(source == "news") %>%
+  ggplot(aes(word, count, fill = gram)) + 
+  geom_bar(alpha = 0.8, stat = "identity", show.legend = FALSE) + 
+  facet_wrap(~ gram, ncol = 2, scales = "free") + 
+  coord_flip() +
+  labs(title = "top-15 tokens in the sampled news data",
+       caption = "10% of 'news' data",
+       x = NULL,
+       y = "count")
+
+plot_news
+```
+
+
+## twitter
+
+```{r, "twitter plot", fig.cap = "figure 3: top 15 tokens in the 'twitter' text file"}
+plot_twitter <- top15_words %>%
+  filter(source == "twitter") %>%
+  ggplot(aes(word, count, fill = gram)) + 
+  geom_bar(alpha = 0.8, stat = "identity", show.legend = FALSE) + 
+  facet_wrap(~ gram, ncol = 2, scales = "free") +
+  coord_flip() +
+  labs(title = "top-15 tokens in the sampled twitter data", 
+       caption = "10% of 'twitter' data",
+       x = NULL,
+       y = "count")
+
+plot_twitter
+```
+
+
+# Summary of sampled data
+
+The table below shows the *number of* **tokens**  in each of the sampled files, the *number of unique* **token** per file, and the *ratio of* of this to each other. 
+
+Unigrams obviously have higher ratio with the value decreasing as *n* increases. The table also shows that the values are generally lowest for **news** data and highest for **blogs** data. This indicates a high ratio of vocabulary use in the **news** data compared to the others.
+
+```{r, "summary chunk", cache = TRUE}
+# count unique words per sample size 
+unique_token <- token_doc %>%
+  group_by(source, gram) %>%
+  summarise(unique = length(levels(factor(word))))
+
+# summarise the number of words per document
+total <- word_doc %>%
+  group_by(source, gram) %>%
+  summarise(total_words = sum(count))
+
+
+# create a summary table 
+summary_tab <- left_join(total, unique_token, by = c("source", "gram"))
+
+summary_tab$gram <- factor(summary_tab$gram, 
+                           levels = c("unigram", "bigram", "trigram", "tetragram"))
+
+summary_tab <- summary_tab %>%
+  mutate(ratio = total_words / unique) %>%
+  arrange(source, gram) %>%
+  select(source, gram, unique, total_words, ratio) %>%
+  format(digits = 2, nsmall = 2)
+```
+
+```{r, "summary tab", fig.cap = "table 3: summary statistics of the tokenized data", results = "asis"}
+DT::datatable(summary_tab)
+```
+
+
+# Plans for creating the prediction algorithm and Shiny app
+
+I plan on building the prediction algorithm using the **tetragram** tokenization (i.e. $n =  4$). This should enable the generation of a predicted word after three words has been typed by the user. This algorithm will be built into the shinyapp when it is finally created.
+
+# Challenges
+
+I am still having challenges figuring out the packages to use for the building the prediction model for text files. I will definitely appreciate any suggestion as regards this.
+
+Thanks.

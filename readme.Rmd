@@ -1,0 +1,87 @@
+---
+title: "Data Science Capstone Project"
+author: "Balogun Stephen Taiye"
+date: "December 26, 2016"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Introduction
+
+This repository describes the activities of the Coursera Data Science Specialization Capstone project offered by the John Hopkins Bloomberg School of Public Health.
+
+The capstone project is a collaboration between John Hopkins and [SwiftKey](https://swiftkey.com/en). It involves building a predictive text model using natural language processing (NLP).
+
+The data for the project is from a corpus called [HC Corpora](www.corpora.heliohost.org).
+
+# Activities
+
+The tasks accomplished include: 
+
+## Obtaining the data
+
+
+@)  downloading the [data](https://d396qusza40orc.cloudfront.net/dsscapstone/dataset/Coursera-SwiftKey.zip)
+
+@)  Loading/manipulating it in R. 
+
+@)  Getting familiar  with NLP and text mining - Learn about the basics of natural     language processing and how it relates to the data science process.
+ 
+
+## Tokenization
+
+
+@)  identifying appropriate tokens such as words, punctuation, and numbers. 
+
+@)  Writing a function that takes a file as input and returns a tokenized version     of it thereby creating **n-grams**.
+
+@)  Profanity filtering - removing profanity and other words you do not want to       predict.
+
+
+
+## Build a predictive model 
+
+@) Creating a predictive model based on the previous data modeling steps
+
+@) Evaluating the model for efficiency and accuracy.
+
+
+## Create Data products
+
+@)  Build a [shinyApp]() that takes as input a phrase (multiple words) in a text      box input and outputs a prediction of the next word. 
+
+@)  A slide deck consisting of no more than 5 slides created with [R Studio           Presenter](https://support.rstudio.com/hc/en-us/articles/200486468-Authoring-R-Presentations).
+
+
+
+# Packages used
+
+The following packages were used to complete the various activities:
+
+@)  [`tm`](http://www.jstatsoft.org/v25/i05/)
+
+@)  [`tidyverse`](https://CRAN.R-project.org/package=tidyverse)
+
+@) [`ANLP`](https://CRAN.R-project.org/package=ANLP)
+
+@)  [`tidytext`](http://dx.doi.org/10.21105/joss.00037)
+
+@)  [`doParallel`](https://CRAN.R-project.org/package=doParallel)
+
+@)  [`dplyr`](https://CRAN.R-project.org/package=dplyr)
+
+
+# Organization of the repository
+
+@)  The initial activities (downloading, exploration and initial tokenization )       were conducted using the five `"*script*.R"`. 
+
+@)  The `milestone_report` folder contains the complete files for the milestone       report
+
+@)  The final activities (final tokenization, prediction model, testing and           validating the model) are contained in the `prediction.R` and the                 `validation.R` files.
+
+@) The `next-word prediction` app is located here on [shinyApp](https://stbalo2002.shinyapps.io/datascience_capstone_project/)
+
+

@@ -1,0 +1,27 @@
+/* Whole document: */
+body{
+  line-height: 2.0;
+}
+
+/* Headers */
+h1,h2,h3,h4,h5,h6{
+  font-family: verdana;
+}
+
+h2{
+	margin-top: 2.0em;
+	font-size: 16pt;
+}
+
+h4.author{
+	color: skyblue;
+}
+
+h4.date{
+	color: lightblue;
+}
+p {
+  margin-bottom: 1.2em;
+  font-family: candara;
+  font-size: 14pt;
+  }

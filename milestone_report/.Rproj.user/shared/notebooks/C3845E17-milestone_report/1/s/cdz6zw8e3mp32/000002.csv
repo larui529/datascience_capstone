@@ -1,0 +1,6 @@
+"0","if (!file.exists(""Coursera-SwiftKey.zip"")) {
+"
+"2","Error: unexpected string constant in:
+""Coursera-SwiftKey.zip""
+if (!file.exists(""""
+"

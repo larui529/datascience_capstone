@@ -1,0 +1,8 @@
+"0","## opening of connection done to link to each of the documents and closing of each connection ensured before a another is opened"
+"0","con1 <- file(description = ""final/en_US/en_US.blogs.txt"", open = ""r"")"
+"0","blogs <- readLines(con1, encoding = ""UTF-8"")  "
+"0","close(con1)"
+"0","con2 <- file(description = ""final/en_US/en_US.news.txt"", open = ""r"")"
+"0","close(con2)"
+"0","con3 <- file(description = ""final/en_US/en_US.twitter.txt"", open = ""r"")"
+"0","close(con3)"

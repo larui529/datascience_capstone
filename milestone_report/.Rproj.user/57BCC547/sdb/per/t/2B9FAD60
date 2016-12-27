@@ -1,0 +1,21 @@
+{
+    "collab_server" : "",
+    "contents" : "## a function to help generate predictors by removing n-1 words from the ngrams\n## data (in dataframe format), and merge the remaining 4 columns\npred_data <- function(doc) {  ## doc = five_grams\na <- doc %>%\n    select(word) %>%\n    separate(word, into = paste0(\"x\", 1:5), sep = \" \")\nb <- a %>% \n  select(- ncol(a)) \nb <- b %>% unite(predictors, 1:ncol(b), sep = \" \")\nreturn(b)\n}\n\n\n## predicts the next word based on the predictors generated\nview_prediction <- function(x, model) {\n  output <- vector(\"character\")\n  x <- unlist(x)\n  x <- as.character(x)\n  for(i in seq_along(x)) {\n    output[i] <- predict_Backoff(x[[i]], model)\n  }\n  output\n}\n\n## tests the accuracy of out model on the testing sample\naccuracy <- function(test, prediction) { ## test is the fivegram_test data\n  ## prediction is the result generated from the view_prediction()\n  d <- test %>% select(word) %>% separate(word, into = paste0(\"x\", 1:5), sep = \" \")\n  d <- d %>% select(ncol(d)) %>% unlist() %>% as.character()\n  mean(prediction == d)\n}\n",
+    "created" : 1480325700267.000,
+    "dirty" : true,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "2280155017",
+    "id" : "2B9FAD60",
+    "lastKnownWriteTime" : 1480331971,
+    "last_content_update" : 1480457317391,
+    "path" : "C:/Users/stbal/Dropbox/coursera2/jhbsph/capstone/project/data_science_capstone/validation.R",
+    "project_path" : null,
+    "properties" : {
+        "tempName" : "Untitled1"
+    },
+    "relative_order" : 2,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}
