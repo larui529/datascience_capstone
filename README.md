@@ -77,4 +77,4 @@ Organization of the repository
 
 4.  The `next-word prediction` app is located here on [shinyApp](https://stbalo2002.shinyapps.io/datascience_capstone_project/)
 
-@ The presentation is available on [rpub](http://rpubs.com/stbalo2002/datascience_capstone_project)
+5.  The presentation is available on [rpub](http://rpubs.com/stbalo2002/datascience_capstone_project)
