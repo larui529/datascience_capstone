@@ -76,3 +76,5 @@ Organization of the repository
 3.  The final activities (final tokenization, prediction model, testing and validating the model) are contained in the `prediction.R` and the `validation.R` files.
 
 4.  The `next-word prediction` app is located here on [shinyApp](https://stbalo2002.shinyapps.io/datascience_capstone_project/)
+
+@ The presentation is available on [rpub](http://rpubs.com/stbalo2002/datascience_capstone_project)
